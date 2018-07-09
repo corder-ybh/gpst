@@ -23,9 +23,9 @@ def candlePlot(data, title=''):
   fig = plt.gcf()
   fig.set_size_inches(20, 15)
   plt.grid(True)
-  plt.show()
+  #plt.show()
  
-df = ts.get_k_data("000799", start="2018-01-01", end="2018-06-29") 
+df = ts.get_k_data("603198", start="2017-07-01", end="2017-08-29")
 df.index = pd.to_datetime(df.date)
 df.drop("date", inplace=True, axis=1)
 candlePlot(df)

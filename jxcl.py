@@ -3,6 +3,7 @@
 import pandas as pd
 import tushare as ts
 import matplotlib.pyplot as plt
+from matplotlib.font_manager import FontManager, FontProperties
 import matplotlib.dates as dt
 
 from matplotlib.dates import DateFormatter
@@ -11,7 +12,7 @@ from mpl_finance import *
 from datetime import timedelta, datetime
 
 #获取数据
-df = ts.get_k_data("000799", start="2017-01-01", end="2018-01-01")
+df = ts.get_k_data("603198", start="2017-01-01", end="2018-01-01")
 #df.index = pd.to_datetime(df.date)
 
 #计算浮动比例
@@ -24,6 +25,15 @@ days = [3, 5, 15, 50]
 for ma in days:
   column_name = "MA{}".format(ma)
   df[column_name] = df[['close']].rolling(window=ma).mean()
+
+#计算策略三所需参数
+df['5-50'] = df['MA5'] - df['MA50']
+df["pc5-50"] = df['5-50'].pct_change()
+df['jxd6'] = df[['5-50']].rolling(window=6).mean()
+df['jxd10'] = df[['5-50']].rolling(window=15).mean()
+
+#计算成交量
+df['xsVolume'] = df['volume'] / 100000 * 2 + 20
 
 #设定回撤值
 withdraw = 0.03
@@ -53,30 +63,32 @@ def sell(bar):
   one = bar.close * 100
   account += position * one
   position = 0
-  
+
 #进行交易
 print ("begin traction time:{}, begin money:{}".format(df.iloc[0].date, account))
 for i in df.index:
-  #策略2 取3日均线，凹处买，凸处卖，止损线-4%
-  if ( i < 6) :
-      continue
-  bar = df.loc[i]
-  yesBar = df.loc[i-1]
-  bfBar = df.loc[i-2]
 
-  nowAccount = account + position * df.iloc[i-1].close * 100
+  # 策略二、在均线的凹点买入，均线的凸点卖出，不好用！
+  # if ( i < 6) :
+  #     continue
+  # bar = df.loc[i]
+  # yesBar = df.loc[i-1]
+  # bfBar = df.loc[i-2]
+  #
+  # nowAccount = account + position * df.iloc[i-1].close * 100
 
   # if (nowAccount < 10000 * (1 - withdraw)) :
   #   #跌幅达回撤值时回撤
   #   print("withdraw at {}".format(nowAccount / 10000))
   #   sell(bar)
-  if (bfBar['MA3'] > yesBar['MA3'] and yesBar['MA3'] < bar['MA3'] and not position):
-    buy(bar)
-  if (bfBar['MA3'] < yesBar['MA3'] and yesBar['MA3'] > bar['MA3'] and position):
-    #减小低卖的情况
-    if (bar['close'] > cost):
-      sell(bar)
+  # if (bfBar['MA3'] > yesBar['MA3'] and yesBar['MA3'] < bar['MA3'] and not position):
+  #   buy(bar)
+  # if (bfBar['MA3'] < yesBar['MA3'] and yesBar['MA3'] > bar['MA3'] and position):
+  #   #减小低卖的情况
+  #   if (bar['close'] > cost):
+  #     sell(bar)
 
+  # #策略一金叉买入，死叉卖出
   # bar = df.loc[i]
   # if (i == 0):
   #   continue
@@ -84,25 +96,47 @@ for i in df.index:
   # yesMA50 = df.loc[i-1].MA50
   # nowMA5 = bar['MA5']
   # nowMA50 = bar['MA50']
-  # if (nowMA5 > nowMA50):
+  # if (yesMA5 < yesMA50 and nowMA5 > nowMA50):
   #   #金叉买入
-  #   if bar.pchange and bar.pchange > breakthrough and position == 0:
-  #     buy(bar)
-  #   elif bar.pchange and bar.pchange < withdraw and position > 0:
-  #     sell(bar)
-  # if (yesMA5 > yesMA50 and nowMA5 < nowMA50 and position) :
+  #   buy(bar)
+  # if (yesMA5 > yesMA50 and nowMA5 < nowMA50) :
   #   #死叉卖出
   #   sell(bar)
+
+  #策略三 使用均线之间距离进行判断，如果均线间距离拉大，而均线还在下行，那么均线到底时买入，均线到顶时买入
+  if (i < 55) :
+    continue
+  bar = df.loc[i]
+  yesBar = df.loc[i-1]
+  bfBar = df.loc[i-2]
+  tf = abs((yesBar['5-50'] - (bfBar['5-50'] + yesBar['5-50'] + bar['5-50']) / 3) / yesBar['5-50'])
+  #寻找买入机会，寻底过程
+  if (bfBar['5-50'] > yesBar['5-50'] and yesBar['5-50'] < bar['5-50']) :
+    if ((bfBar['5-50'] * yesBar['5-50'] > 0) and (yesBar['5-50'] * bar['5-50'] > 0) and tf > 0.15) :
+      print("buy bf:{} yes:{} td:{} 5-50pc:{} tf:{}".format(bfBar['5-50'], yesBar['5-50'], bar['5-50'], bar['pc5-50'], tf))
+      buy(bar)
+  #寻找卖出机会，防止过早卖出，容易被洗盘洗出去
+  if (bfBar['5-50'] < yesBar['5-50'] and yesBar['5-50'] > bar['5-50']) :
+    if ((bfBar['5-50'] * yesBar['5-50'] > 0) and (yesBar['5-50'] * bar['5-50'] > 0) and tf > 0.15) :
+      print("sell bf:{} yes:{} td:{} 5-50pc:{} tf:{}".format(bfBar['5-50'], yesBar['5-50'], bar['5-50'], bar['pc5-50'], tf))
+      sell(bar)
 
 print("finally cash:", account)
 print("finally market values:", position * df.iloc[-1].close * 100)
 
 #打印图片
+df['5-50'] = df['5-50'] + 18
+# df['jxd6'] = df['jxd6'] + 18
+# df['jxd10'] = df['jxd10'] + 18
+
 df.index = pd.to_datetime(df.date)
-df[['close','MA3','MA15', 'MA5', 'MA50']].plot()
+df[['close','MA5', 'MA50','5-50', 'jxd6', 'jxd10']].plot()
+
 '''
-plt.plot(df[['close','MA5','MA50']])
+plt.plot(df[['close','MA5','MA50','xsVolume']])
 plt.title('junxian xitong')
 plt.xlabel('date')
+
 '''
-plt.show()
+plt.grid(True,axis='y')
+# plt.show()
