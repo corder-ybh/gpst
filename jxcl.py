@@ -12,7 +12,7 @@ from mpl_finance import *
 from datetime import timedelta, datetime
 
 #获取数据
-df = ts.get_k_data("603198", start="2017-01-01", end="2018-01-01")
+df = ts.get_k_data("600048", start="2017-09-01")
 #df.index = pd.to_datetime(df.date)
 
 #计算浮动比例
@@ -21,13 +21,13 @@ df["pchange"] = df.close.pct_change()
 df["change"] = df.close.diff()
 
 #计算均线
-days = [3, 5, 15, 50]
+days = [5, 34, 55, 50]
 for ma in days:
   column_name = "MA{}".format(ma)
   df[column_name] = df[['close']].rolling(window=ma).mean()
 
 #计算策略三所需参数
-df['5-50'] = df['MA5'] - df['MA50']
+df['5-50'] = df['MA5'] - df['MA55']
 df["pc5-50"] = df['5-50'].pct_change()
 df['jxd6'] = df[['5-50']].rolling(window=6).mean()
 df['jxd10'] = df[['5-50']].rolling(window=15).mean()
@@ -45,6 +45,8 @@ account = 10000
 position = 0
 #上一次交易金额
 cost = 0
+#是否等待一天进行观察
+isDelay = ''
 
 #下单函数
 def buy(bar):
@@ -63,6 +65,7 @@ def sell(bar):
   one = bar.close * 100
   account += position * one
   position = 0
+
 
 #进行交易
 print ("begin traction time:{}, begin money:{}".format(df.iloc[0].date, account))
@@ -104,33 +107,46 @@ for i in df.index:
   #   sell(bar)
 
   #策略三 使用均线之间距离进行判断，如果均线间距离拉大，而均线还在下行，那么均线到底时买入，均线到顶时买入
-  if (i < 55) :
+  if (i < 165) :
     continue
   bar = df.loc[i]
   yesBar = df.loc[i-1]
   bfBar = df.loc[i-2]
   tf = abs((yesBar['5-50'] - (bfBar['5-50'] + yesBar['5-50'] + bar['5-50']) / 3) / yesBar['5-50'])
   #寻找买入机会，寻底过程
-  if (bfBar['5-50'] > yesBar['5-50'] and yesBar['5-50'] < bar['5-50']) :
-    if ((bfBar['5-50'] * yesBar['5-50'] > 0) and (yesBar['5-50'] * bar['5-50'] > 0) and tf > 0.15) :
-      print("buy bf:{} yes:{} td:{} 5-50pc:{} tf:{}".format(bfBar['5-50'], yesBar['5-50'], bar['5-50'], bar['pc5-50'], tf))
-      buy(bar)
+  if (yesBar['MA5'] < yesBar['MA55'] and bar['MA5'] > bar['MA55'] and not position) :
+    zf = (bar['close'] - bar['MA55']) / bar['close']
+    if (isDelay == "w1") :
+      #处理前两天出现买点，但是幅度不正常，观察一天
+      if (bar['pchange'] < 0) :
+        #买点出现后第二天就下跌，那么跳过此买点
+        print("tiaoguo pc:{}".format(bar['pchange']))
+        isDelay = ""
+        continue
+    #如果振幅异常，那么观察一天再买入
+    if (zf > 0.03) :
+      isDelay = "w1"
+      continue
+    print("sell bf:{} yes:{} td:{} 5-50pc:{} tf:{} zf:{} pc:{}".format(bfBar['5-50'], yesBar['5-50'], bar['5-50'], bar['pc5-50'], tf, zf,bar['pchange']))
+    buy(bar)
+
+
+
   #寻找卖出机会，防止过早卖出，容易被洗盘洗出去
-  if (bfBar['5-50'] < yesBar['5-50'] and yesBar['5-50'] > bar['5-50']) :
-    if ((bfBar['5-50'] * yesBar['5-50'] > 0) and (yesBar['5-50'] * bar['5-50'] > 0) and tf > 0.15) :
-      print("sell bf:{} yes:{} td:{} 5-50pc:{} tf:{}".format(bfBar['5-50'], yesBar['5-50'], bar['5-50'], bar['pc5-50'], tf))
-      sell(bar)
+  if (bfBar['jxd6'] < yesBar['jxd6'] and yesBar['jxd6'] > bar['jxd6'] and position) :
+    print("sell bf:{} yes:{} td:{} 5-50pc:{} tf:{}".format(bfBar['jxd6'], yesBar['jxd6'], bar['jxd6'], bar['pc5-50'], tf))
+    sell(bar)
 
 print("finally cash:", account)
 print("finally market values:", position * df.iloc[-1].close * 100)
 
 #打印图片
-df['5-50'] = df['5-50'] + 18
-# df['jxd6'] = df['jxd6'] + 18
-# df['jxd10'] = df['jxd10'] + 18
+df['5-50'] = 3 * df['5-50'] + 10
+df['jxd6'] = 3 * df['jxd6'] + 10
+df['jxd10'] = 3 * df['jxd10'] + 10
 
 df.index = pd.to_datetime(df.date)
-df[['close','MA5', 'MA50','5-50', 'jxd6', 'jxd10']].plot()
+df[['close','MA5', 'MA34', 'MA55', '5-50', 'jxd6', 'jxd10']].plot()
 
 '''
 plt.plot(df[['close','MA5','MA50','xsVolume']])
@@ -139,4 +155,4 @@ plt.xlabel('date')
 
 '''
 plt.grid(True,axis='y')
-# plt.show()
+plt.show()
