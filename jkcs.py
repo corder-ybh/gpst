@@ -82,7 +82,7 @@ df = ts.get_stock_basics()
 #df = ts.get_rrr()
 
 #货币供应量
-#df = ts.get_money_supply()
+#df = ts.get_money_supply()32
 
 #货币供应量 年底余额(没有17年的)
 #df = ts.get_money_supply_bal()
