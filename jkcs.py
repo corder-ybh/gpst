@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from sqlalchemy import create_engine
 
 #数据库
-engine = create_engine('mysql://root:123456@localhost/finance?charset=utf8')
+engine = create_engine('mysql://root:root@localhost:3306/finance?charset=utf8')
 
 #大单交易数据,可以获取当日的大单交易，价格，买卖盘等情况
 #df = ts.get_sina_dd("000799",date='2018-07-13')
