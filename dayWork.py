@@ -1,8 +1,7 @@
 # -*- coding: UTF-8 -*-
 '''
-用于将数据插入到数据库中
+每日数据处理，需要每日将前一天的数据传入，然后循环检查一遍形式，并生成报表
 '''
-
 import tushare as ts
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -11,9 +10,8 @@ import datetime
 import time
 import math
 
-engine = create_engine('mysql://root:root@localhost:3306/finance?charset=utf8')
+engine = create_engine('mysql://root:root@127.0.0.1:3306/finance?charset=utf8')
 df = pd.read_sql(sql="SELECT `index`,`code`,`name`,`industry` FROM finance.stock_basics", con=engine)
-
 
 # 获取n天前日期
 def getNdatAgo(date, n):
@@ -22,15 +20,14 @@ def getNdatAgo(date, n):
     Date = str(datetime.datetime(y, m, d) - datetime.timedelta(n)).split()
     return Date[0]
 
-
-def insertInto(data):
+def daywork(data) :
     code = data['code']
 
-    # 获取数据
+    # 获取数据将当日数据添加进
     tDate = time.strftime("%Y-%m-%d", time.localtime())
-    nDate = '2014-01-01'
+    nDate = getNdatAgo(tDate, 1)
     caDf = pd.DataFrame()
-    caDf = ts.get_k_data(code, start=nDate, end=tDate, retry_count=5, pause=2)
+    caDf = ts.get_k_data(code, end=tDate, retry_count=5, pause=2)
     if (caDf is None or caDf.empty) :
         return
     print("get :{}".format(data['index']))
@@ -42,11 +39,10 @@ def insertInto(data):
     caDf['code'] = code
     # caDf.reset_index(drop = True, inplace=True)
     caDf.to_sql('tick_data', engine,if_exists='append', index=False)
-    print("insert ok!")
+
 
 for i in df.index:
-    insertInto(df.loc[i])
+    daywork(df.loc[i])
     print(df.loc[i]['index'])
     if (i > 1000) :
         break
-
