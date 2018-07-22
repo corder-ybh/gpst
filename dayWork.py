@@ -9,8 +9,20 @@ from sqlalchemy import create_engine
 import datetime
 import time
 import math
+from configparser import ConfigParser
 
-engine = create_engine('mysql://root:root@127.0.0.1:3306/finance?charset=utf8')
+cf = ConfigParser()
+cf.read('./gpst.conf')
+dbHost = cf.get("db", "dbHost")
+dbPort = cf.get("db", "dbPort")
+dbUser = cf.get("db", "dbUser")
+dbPass = cf.get("db", "dbPass")
+dbName = cf.get("db", "dbName")
+
+engine = create_engine(
+    "mysql://" + dbUser + ":" + dbPass + "@" + dbHost + ":" + dbPort + "/" + dbName + "?charset=utf8")
+conn = engine.connect()
+
 df = pd.read_sql(sql="SELECT `index`,`code`,`name`,`industry` FROM finance.stock_basics", con=engine)
 
 # 获取n天前日期
@@ -21,13 +33,13 @@ def getNdatAgo(date, n):
     return Date[0]
 
 def daywork(data) :
-    code = data['code']
-
+    global dbName
+    code = '600640' #data['code']
     # 获取数据将当日数据添加进
     tDate = time.strftime("%Y-%m-%d", time.localtime())
-    nDate = getNdatAgo(tDate, 1)
+    nDate = getNdatAgo(tDate, 4)
     caDf = pd.DataFrame()
-    caDf = ts.get_k_data(code, end=tDate, retry_count=5, pause=2)
+    caDf = ts.get_k_data(code, start=nDate, end=tDate, retry_count=5, pause=2)
     if (caDf is None or caDf.empty) :
         return
     print("get :{}".format(data['index']))
@@ -38,8 +50,14 @@ def daywork(data) :
     # caDf['date'] = caDf.index
     caDf['code'] = code
     # caDf.reset_index(drop = True, inplace=True)
-    caDf.to_sql('tick_data', engine,if_exists='append', index=False)
-
+    date = caDf.iloc[-1]['date']
+    sql = "SELECT 1 FROM " + dbName + ".tick_data WHERE code = '" + code + "' AND date = '"+date + "'"
+    isExists = engine.execute(sql).fetchall()
+    if (0 == len(isExists) or list(isExists[0])[0] != 1) :
+        caDf = caDf.tail(1)
+        caDf.to_sql('tick_data', engine,if_exists='append', index=False)
+    else :
+        return
 
 for i in df.index:
     daywork(df.loc[i])
