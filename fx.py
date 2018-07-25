@@ -26,24 +26,35 @@ def draw(code) :
     df['jxd6'] = df[['5-50']].rolling(window=6).mean()
     df['jxd10'] = df[['5-50']].rolling(window=15).mean()
 
+    #基数确定
+    baseNum = df['MA55'].min()
+
     # 计算成交量
-    df['xsVolume'] = df['volume'] / 100000 * 2 + 20
+    df['xsVolume'] = df['volume'] / 100000 * 2 + baseNum + 3
 
     # 打印图片
-    df['5-50'] = 3 * df['5-50'] + 10
-    df['jxd6'] = 3 * df['jxd6'] + 10
-    df['jxd10'] = 3 * df['jxd10'] + 10
+    df['5-50'] = 3 * df['5-50'] + baseNum - 3
+    df['jxd6'] = 3 * df['jxd6'] + baseNum - 3
+    df['jxd10'] = 3 * df['jxd10'] + baseNum - 3
 
     df.index = pd.to_datetime(df.date)
+
     df[['close', 'MA5', 'MA34', 'MA55', '5-50', 'jxd6', 'jxd10', 'xsVolume']].plot()
 
     plt.grid(True, axis='y')
     plt.title(code)
-    plt.show()
+    plt.savefig(code +'.png')
+
+    df = df.tail(70)
+    df[['close', 'MA5', 'MA34', 'MA55', '5-50', 'jxd6', 'jxd10', 'xsVolume']].plot()
+    plt.grid(True, axis='y')
+    plt.title(code + "-latest")
+    plt.savefig(code + '-latest.png')
+
 
 #候选
 #cad = []
-cad = ['603606','300451','300523','002458','000738','600476','002906','603856','000802','600760','600132','603096','300517','600183','300365','600240','002179','300132','603228','300559','300529','002039','600131','300042','000990','002007','600789','600246']
+cad = ['603606','300451','300523','002458']
 for code in cad :
     draw(code)
 
