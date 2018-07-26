@@ -1,12 +1,13 @@
 # -*- coding: UTF-8 -*-
+# import matplotlib as mpl
+# mpl.use('Agg')
 
-import pandas as pd
-import tushare as ts
 import time
-import matplotlib.pyplot as plt
-from function import getNdatAgo
+import datetime
 from sqlalchemy import create_engine
 from configparser import ConfigParser
+import pandas as pd
+import matplotlib.pyplot as plt
 
 cf = ConfigParser()
 cf.read('./gpst.conf')
@@ -20,6 +21,12 @@ engine = create_engine(
     "mysql://" + dbUser + ":" + dbPass + "@" + dbHost + ":" + dbPort + "/" + dbName + "?charset=utf8")
 conn = engine.connect()
 
+# 获取n天前日期
+def getNdatAgo(date, n):
+    t = time.strptime(date, "%Y-%m-%d")
+    y, m, d = t[0:3]
+    Date = str(datetime.datetime(y, m, d) - datetime.timedelta(n)).split()
+    return Date[0]
 
 def draw(code) :
     # 获取数据
@@ -65,42 +72,8 @@ def draw(code) :
     plt.title(code)
     plt.savefig(code +'.png')
 
-    df = df.tail(70)
+    df = df.tail(50)
     df[['close', 'MA5', 'MA34', 'MA55', '5-50', 'jxd6', 'jxd10', 'xsVolume']].plot()
     plt.grid(True, axis='y')
     plt.title(code + "-latest")
     plt.savefig(code + '-latest.png')
-
-
-#候选
-#cad = []
-cad = ['603606','300451','300523','002458']
-for code in cad :
-    draw(code)
-
-#0710 记录 600048可能要抄底了或者等金叉出现防止抄在半山腰，均线及k线均出现抬头趋势
-#          002507卖点，应该要进入下跌趋势5日均线和55日均线要交叉了，上涨过程应该到头了
-#          603198卖点，与上面类似
-#          600463不明朗，下跌通道吧
-#          600590不明朗，下跌通道吧
-#          000519下跌趋势可能在收缩
-#300132 已经涨了一波了
-#603228 没有量，但是在上涨
-#300559 已经在高位了，但是不知道为什么会上涨，生物制药类，可能会受华大影响
-#300529 股价已经拉高
-#002039 没点动静。均线长期向下
-#600131 55日均线趋势向下，5日均线升势放缓
-#300042 一直跌，股价围绕55日均线纠缠，但是55日均线一直向下
-#000990 一直跌，不考虑了，55日均线趋势一直向下，股价长期低于55日均线，拉低55日均线
-#002007 可能再来一个小高峰，错过了最佳买卖时机
-#600789 可能是个机会
-#600246 5块钱，毫无波动，pass
-#600132 跌入到谷底刚出来，可能可以考虑下，不过已经被拉的比较高了
-#603096 不推荐涨跌较大，看下基本面吧
-#300517 涨势放缓 不考虑，可能要进入下降趋势了
-#600183 长期看跌，短线向上 ok
-#300365 长期看波动较大，刚从55日均线上来，可以考虑下
-#600240 与均线长期纠缠，波动不大，涨跌幅较小
-#002179 已经涨了一波了也许可以考虑
-
-

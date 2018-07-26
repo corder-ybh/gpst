@@ -10,6 +10,7 @@ import datetime
 import time
 import math
 from configparser import ConfigParser
+from sendPic import EmailHandler
 
 cf = ConfigParser()
 cf.read('./gpst.conf')
@@ -18,12 +19,15 @@ dbPort = cf.get("db", "dbPort")
 dbUser = cf.get("db", "dbUser")
 dbPass = cf.get("db", "dbPass")
 dbName = cf.get("db", "dbName")
+email = cf.get("base", "email")
 
 engine = create_engine(
     "mysql://" + dbUser + ":" + dbPass + "@" + dbHost + ":" + dbPort + "/" + dbName + "?charset=utf8")
 conn = engine.connect()
 
 df = pd.read_sql(sql="SELECT `index`,`code`,`name`,`industry` FROM finance.stock_basics", con=engine)
+result = list()
+
 
 # 获取n天前日期
 def getNdatAgo(date, n):
@@ -32,7 +36,8 @@ def getNdatAgo(date, n):
     Date = str(datetime.datetime(y, m, d) - datetime.timedelta(n)).split()
     return Date[0]
 
-def daywork(data) :
+
+def daywork(data):
     global dbName
     code = data['code']
 
@@ -41,9 +46,8 @@ def daywork(data) :
     nDate = getNdatAgo(tDate, 4)
     caDf = pd.DataFrame()
     caDf = ts.get_k_data(code, start=nDate, end=tDate, retry_count=5, pause=2)
-    if (caDf is None or caDf.empty) :
+    if (caDf is None or caDf.empty):
         return
-    print("get :{}".format(data['index']))
     # 计算浮动比例
     caDf["pchange"] = caDf.close.pct_change()
     # 计算浮动点数
@@ -52,22 +56,24 @@ def daywork(data) :
     caDf['code'] = code
     # caDf.reset_index(drop = True, inplace=True)
     date = caDf.iloc[-1]['date']
-    sql = "SELECT 1 FROM " + dbName + ".tick_data WHERE code = '" + code + "' AND date = '"+date + "'"
+    sql = "SELECT 1 FROM " + dbName + ".tick_data WHERE code = '" + code + "' AND date = '" + date + "'"
     isExists = engine.execute(sql).fetchall()
-    if (0 == len(isExists) or list(isExists[0])[0] != 1) :
+    if (0 == len(isExists) or list(isExists[0])[0] != 1):
         caDf = caDf.tail(2)
-        caDf.to_sql('tick_data', engine,if_exists='append', index=False)
+        caDf.to_sql('tick_data', engine, if_exists='append', index=False)
         print("insert :" + code)
-    else :
+    else:
         return
 
 
 
-    #取该股票的数据进行分析，当前分析策略：排序检查出现5日均线雨55日均线交叉的，且55日均线是向上的，
+    # 取该股票的数据进行分析，当前分析策略：排序检查出现5日均线雨55日均线交叉的，且55日均线是向上的，
 
-    #取已买股票，计算成本
+    # 取已买股票，计算成本
 
-def analyStock(code) :
+
+def analyStock(code):
+    global result
 
     # 获取数据
     tDate = time.strftime("%Y-%m-%d", time.localtime())
@@ -84,34 +90,76 @@ def analyStock(code) :
         column_name = "MA{}".format(ma)
         caDf[column_name] = caDf[['close']].rolling(window=ma).mean()
 
-    #10天之内5日均线与55日均线有交集
+    # 10天之内5日均线与55日均线有交集
     # 计算55日均线浮动比例
     caDf["55pchange"] = caDf.MA55.pct_change()
-    pChange55Sum = caDf.iloc[:,'55pchange'].sum()
 
-    endDf = caDf.tail(10)
+    endDf = caDf.tail(8)
     feature = 0
+    # 首末项
+    head = endDf.iloc[1]
+    tail = endDf.iloc[-1]
 
     for i in endDf.index:
         temp = endDf.loc[i]
-        newPrice = temp['close']
+
         if (math.isnan(temp['MA5'])):
             return
         elif (temp['MA5'] > temp['MA55']):
             feature += 1
         else:
-            feature = 1
+            feature = feature - 1
 
-    if (feature > 6):
-        head = endDf.iloc[1]
-        tail = endDf.iloc[-1]
-
+    if (feature > 5):
+        # 10天之内有均线金叉出现，5日均线上穿55日均线
         if (head['MA5'] < head['MA55'] and tail['MA5'] > tail['MA55']):
-            print(1)
+            # 进行发送处理
+            result.append(code)
+            print("jc:" + code)
 
-#将数据保存为图片并发邮件
+    # 是否低于55日均线
+    end5Df = caDf.tail(6)
+    isLow55 = 0
+    isUp = 0
+    for i in end5Df.index:
+        temp = end5Df.loc[i]
+
+        tClose = temp['close']
+        t55MA = temp['MA55']
+        tPChange = temp['pchange']
+
+        #5日以内低于55日均线的
+        if (tClose < t55MA):
+            isLow55 = isLow55 + 1
+        else:
+            isLow55 = isLow55 - 1
+
+        if (tPChange > 0):
+            isUp = isUp + 1
+        else:
+            isUp = isUp - 1
+
+    #6日以内有4日以上是低于55日线，且有3日以上是上涨状态
+    if (isLow55 > 4 and isUp > 3):
+        result.append(code)
+        print ("55:" + code)
 
 
-for i in df.index:
-    daywork(df.loc[i])
+# 将数据保存为图片并发邮件
+
+
+
+for i in df.index: #df.index
+    temp = df.loc[i]
+    code = temp['code']
+    #每日添加和分析，两个函数开启一个即可
+    #daywork(df.loc[i])
+    analyStock(code)
     print(df.loc[i]['index'])
+#result = ['000799', '600183']
+strTo = [email]
+strFrom = 'root@us-west-2.compute.internal'
+eh = EmailHandler()
+tDate = time.strftime("%Y-%m-%d", time.localtime())
+title = tDate + "-报表"
+eh.sendPicMail(strTo, title, result)
