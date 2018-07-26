@@ -1,4 +1,8 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
+
+result = ['000799', '600183','000791', '600182','000793', '600184']
+print( result[::2])
+
 from math import *
 print sqrt(9)
 a = [1,2,3] + [4,5,6]

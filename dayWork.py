@@ -26,7 +26,8 @@ engine = create_engine(
 conn = engine.connect()
 
 df = pd.read_sql(sql="SELECT `index`,`code`,`name`,`industry` FROM finance.stock_basics", con=engine)
-result = list()
+resultJc = list()
+result55 = list()
 
 
 # 获取n天前日期
@@ -114,7 +115,7 @@ def analyStock(code):
         # 10天之内有均线金叉出现，5日均线上穿55日均线
         if (head['MA5'] < head['MA55'] and tail['MA5'] > tail['MA55']):
             # 进行发送处理
-            result.append(code)
+            resultJc.append(code)
             print("jc:" + code)
 
     # 是否低于55日均线
@@ -141,7 +142,7 @@ def analyStock(code):
 
     #6日以内有4日以上是低于55日线，且有3日以上是上涨状态
     if (isLow55 > 4 and isUp > 3):
-        result.append(code)
+        result55.append(code)
         print ("55:" + code)
 
 
@@ -156,10 +157,27 @@ for i in df.index: #df.index
     #daywork(df.loc[i])
     analyStock(code)
     print(df.loc[i]['index'])
-#result = ['000799', '600183']
+# #result = ['000799', '600183']
 strTo = [email]
 strFrom = 'root@us-west-2.compute.internal'
 eh = EmailHandler()
 tDate = time.strftime("%Y-%m-%d", time.localtime())
-title = tDate + "-报表"
-eh.sendPicMail(strTo, title, result)
+
+# resultJc = ['000799', '600183','000791', '600182','000793', '600184','000795', '600186','000797', '600188','000799', '600181'
+#           ,'000712','612183', '002391', '230182', '023793', '643184', '475795', '643186', '246797', '600188', '000799', '600181'
+#     , '123344', '231533', '214356', '213435', '326534', '214355', '243556', '231545', '246797', '600188', '000799',
+#           '600181']
+
+tempJc = list()
+cs = math.ceil(float(len(resultJc)) / 10)
+for i in range(0, int(cs)):
+    tempJc = resultJc[(i*10):(i+1)*10]
+    title = tDate + "-JC报表" + str(i)
+    eh.sendPicMail(strTo, title, tempJc)
+
+temp55 = list()
+cs = math.ceil(float(len(result55)) / 10)
+for i in range(0, int(cs)):
+    temp55 = result55[(i*10):(i+1)*10]
+    title = tDate + "-55报表" + str(i)
+    eh.sendPicMail(strTo, title, temp55)
