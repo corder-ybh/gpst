@@ -4,6 +4,7 @@ import pandas as pd
 import tushare as ts
 import matplotlib.pyplot as plt
 from sqlalchemy import create_engine
+from function import *
 
 #数据库
 engine = create_engine('mysql://root:root@localhost:3306/finance?charset=utf8')
@@ -70,7 +71,11 @@ engine = create_engine('mysql://root:root@localhost:3306/finance?charset=utf8')
 
 #基本面数据
 #股票列表
-df = ts.get_stock_basics()
+# df = ts.get_stock_basics()
+# cadf = df.loc['002680']
+# res = getTickInfo('600183')
+# print(res)
+updateStock()
 
 #存款利率
 #df = ts.get_deposit_rate()
@@ -93,7 +98,7 @@ df = ts.get_stock_basics()
 #国内生产总值 季度
 #df = ts.get_gdp_quarter()
 
-df.to_sql('tick_data', engine)
-print(df)
+# df.to_sql('tick_data', engine)
+# print(df)
 #df.head(10)
 

@@ -6,8 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import random
 
-from function import getNdatAgo
-from function import draw
+from function import *
 
 from sqlalchemy import create_engine
 from email.mime.text import MIMEText
@@ -70,7 +69,7 @@ class EmailHandler(object):
                 # Define the image's ID as referenced above
                 msgImage.add_header('Content-ID', '<image{count}>'.format(count=i))
                 msgRoot.attach(msgImage)
-                print("msgText:"+ msgHtmlImg)
+                #print("msgText:"+ msgHtmlImg)
         else:
             msgText = MIMEText(msgContent, 'html')
             msgAlternative.attach(msgText)
@@ -107,16 +106,17 @@ class EmailHandler(object):
         j = random.uniform(1000,2000)
         for code in codeList:
             draw(code)
-            msgHtmlImg = code + ":</br>"
+            content = getTickInfo(code)
+            msgHtmlImg = content + ":</br>"
             msgHtmlImg += '<img src="cid:image{count}"><br>'.format(count=i)
             msgHtmlImg += '<img src="cid:image{countN}"><br>'.format(countN=j)
             msgHtmlImg += '-------------------------------------------------------------<br>'
             msgText = MIMEText(msgHtmlImg, 'html')
             msgAlternative.attach(msgText)
-            print(msgText)
+            #print(msgText)
 
             #添加图片
-            fp = open('./'+code+'.png', 'rb')
+            fp = open('./img/'+code+'.png', 'rb')
             s = fp.read()
             #print ("S1:" + s)
             msgImage = MIMEImage(s)
@@ -124,7 +124,7 @@ class EmailHandler(object):
             msgImage.add_header('Content-ID', '<image{count}>'.format(count=i))
             msgRoot.attach(msgImage)
 
-            fp1 = open('./' + code + '-latest.png', 'rb')
+            fp1 = open('./img/' + code + '-latest.png', 'rb')
             s2 = fp1.read()
             #print("S2："+ s2)
             msgImage1= MIMEImage(s2)
@@ -140,7 +140,6 @@ class EmailHandler(object):
             self.smtp.sendmail(strFrom, listTo, msgRoot.as_string())
             self.smtp.quit()
             print("Send mail success :".format())
-            print("content:" + msgRoot.as_string())
         except Exception as e:
             print("ERROR:Send mail failed  with {0}".format(str(e)))
 

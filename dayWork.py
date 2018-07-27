@@ -37,42 +37,6 @@ def getNdatAgo(date, n):
     Date = str(datetime.datetime(y, m, d) - datetime.timedelta(n)).split()
     return Date[0]
 
-
-def daywork(data):
-    global dbName
-    code = data['code']
-
-    # 获取数据将当日数据添加进
-    tDate = time.strftime("%Y-%m-%d", time.localtime())
-    nDate = getNdatAgo(tDate, 4)
-    caDf = pd.DataFrame()
-    caDf = ts.get_k_data(code, start=nDate, end=tDate, retry_count=5, pause=2)
-    if (caDf is None or caDf.empty):
-        return
-    # 计算浮动比例
-    caDf["pchange"] = caDf.close.pct_change()
-    # 计算浮动点数
-    caDf["change"] = caDf.close.diff()
-    # caDf['date'] = caDf.index
-    caDf['code'] = code
-    # caDf.reset_index(drop = True, inplace=True)
-    date = caDf.iloc[-1]['date']
-    sql = "SELECT 1 FROM " + dbName + ".tick_data WHERE code = '" + code + "' AND date = '" + date + "'"
-    isExists = engine.execute(sql).fetchall()
-    if (0 == len(isExists) or list(isExists[0])[0] != 1):
-        caDf = caDf.tail(2)
-        caDf.to_sql('tick_data', engine, if_exists='append', index=False)
-        print("insert :" + code)
-    else:
-        return
-
-
-
-    # 取该股票的数据进行分析，当前分析策略：排序检查出现5日均线雨55日均线交叉的，且55日均线是向上的，
-
-    # 取已买股票，计算成本
-
-
 def analyStock(code):
     global result
 
@@ -95,28 +59,29 @@ def analyStock(code):
     # 计算55日均线浮动比例
     caDf["55pchange"] = caDf.MA55.pct_change()
 
-    endDf = caDf.tail(8)
+    endDf = caDf.tail(6)
+    endDf.reset_index(drop=True, inplace=True)
     feature = 0
     # 首末项
-    head = endDf.iloc[1]
+    head = endDf.iloc[0]
     tail = endDf.iloc[-1]
 
-    for i in endDf.index:
-        temp = endDf.loc[i]
-
-        if (math.isnan(temp['MA5'])):
-            return
-        elif (temp['MA5'] > temp['MA55']):
-            feature += 1
-        else:
-            feature = feature - 1
-
-    if (feature > 5):
-        # 10天之内有均线金叉出现，5日均线上穿55日均线
-        if (head['MA5'] < head['MA55'] and tail['MA5'] > tail['MA55']):
-            # 进行发送处理
-            resultJc.append(code)
-            print("jc:" + code)
+    # for i in endDf.index:
+    #     temp = endDf.loc[i]
+    #
+    #     if (math.isnan(temp['MA5'])):
+    #         return
+    #     elif (temp['MA5'] > temp['MA55']):
+    #         feature += 1
+    #     else:
+    #         feature = feature - 1
+    #
+    # if (feature > 5):
+    # 6天之内有均线金叉出现，5日均线上穿55日均线
+    if (head['MA5'] < head['MA55'] and tail['MA5'] > tail['MA55']):
+        # 进行发送处理
+        resultJc.append(code)
+        print("jc:" + code)
 
     # 是否低于55日均线
     end5Df = caDf.tail(6)
@@ -150,29 +115,27 @@ def analyStock(code):
 
 
 
-for i in df.index: #df.index
-    temp = df.loc[i]
-    code = temp['code']
-    #每日添加和分析，两个函数开启一个即可
-    #daywork(df.loc[i])
-    analyStock(code)
-    print(df.loc[i]['index'])
-# #result = ['000799', '600183']
+# for i in df.index: #df.index
+#     temp = df.loc[i]
+#     code = temp['code']
+#     #每日添加和分析，两个函数开启一个即可
+#     analyStock(code)
+#     print(df.loc[i]['index'])
+# # #result = ['002770', '002164']
 strTo = [email]
 strFrom = 'root@us-west-2.compute.internal'
 eh = EmailHandler()
 tDate = time.strftime("%Y-%m-%d", time.localtime())
 
-# resultJc = ['000799', '600183','000791', '600182','000793', '600184','000795', '600186','000797', '600188','000799', '600181'
-#           ,'000712','612183', '002391', '230182', '023793', '643184', '475795', '643186', '246797', '600188', '000799', '600181'
-#     , '123344', '231533', '214356', '213435', '326534', '214355', '243556', '231545', '246797', '600188', '000799',
-#           '600181']
+resultJc = ['002770','002164']
 
 tempJc = list()
 cs = math.ceil(float(len(resultJc)) / 10)
 for i in range(0, int(cs)):
     tempJc = resultJc[(i*10):(i+1)*10]
     title = tDate + "-JC报表" + str(i)
+    time.sleep(1)
+    print("jc:"+str(i))
     eh.sendPicMail(strTo, title, tempJc)
 
 temp55 = list()
@@ -180,4 +143,6 @@ cs = math.ceil(float(len(result55)) / 10)
 for i in range(0, int(cs)):
     temp55 = result55[(i*10):(i+1)*10]
     title = tDate + "-55报表" + str(i)
+    time.sleep(1)
+    print("55:"+str(i))
     eh.sendPicMail(strTo, title, temp55)
