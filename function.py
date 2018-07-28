@@ -78,12 +78,12 @@ def draw(code) :
     xsBase = getLength(xsMedian)
 
     # 计算成交量
-    df['xsVolume'] = df['volume'] / xsBase * 3 + baseNum + 3
+    df['xsVolume'] = df['volume'] / xsBase * 3 + baseNum + 1
 
     # 打印图片
-    df['5-50'] = 3 * df['5-50'] + baseNum - 3
-    df['jxd6'] = 3 * df['jxd6'] + baseNum - 3
-    df['jxd10'] = 3 * df['jxd10'] + baseNum - 3
+    df['5-50'] = 3 * df['5-50'] + baseNum - 1
+    df['jxd6'] = 3 * df['jxd6'] + baseNum - 1
+    df['jxd10'] = 3 * df['jxd10'] + baseNum - 1
 
     df.index = pd.to_datetime(df.date)
 
@@ -93,7 +93,7 @@ def draw(code) :
     plt.title(code)
     plt.savefig('./img/'+code +'.png')
 
-    df = df.tail(50)
+    df = df.tail(30)
     df[['close', 'MA5', 'MA34', 'MA55', '5-50', 'jxd6', 'jxd10', 'xsVolume']].plot()
     plt.grid(True, axis='y')
     plt.title(code + "-latest")
