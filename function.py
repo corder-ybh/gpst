@@ -9,8 +9,7 @@ from configparser import ConfigParser
 import pandas as pd
 import matplotlib.pyplot as plt
 import tushare as ts
-
-
+import math
 import sys
 reload(sys) # Python2.5 初始化后会删除 sys.setdefaultencoding 这个方法，我们需要重新载入
 
@@ -34,6 +33,19 @@ def getNdatAgo(date, n):
     y, m, d = t[0:3]
     Date = str(datetime.datetime(y, m, d) - datetime.timedelta(n)).split()
     return Date[0]
+
+'''
+传入Num返回数字位数
+'''
+def getLength(num):
+    numStr = str(num)
+    place = numStr.find('.')
+    if (-1 == place) :
+        length = len(numStr)
+    else:
+        tempStr = numStr[0 : place]
+        length = len(tempStr)
+    return  pow(10, length)
 
 def draw(code) :
     # 获取数据
@@ -61,10 +73,12 @@ def draw(code) :
     df['jxd10'] = df[['5-50']].rolling(window=15).mean()
 
     #基数确定
-    baseNum = df['MA55'].min()
+    baseNum = df['MA55'].median()
+    xsMedian = df['volume'].median()
+    xsBase = getLength(xsMedian)
 
     # 计算成交量
-    df['xsVolume'] = df['volume'] / 100000 * 2 + baseNum + 3
+    df['xsVolume'] = df['volume'] / xsBase * 3 + baseNum + 3
 
     # 打印图片
     df['5-50'] = 3 * df['5-50'] + baseNum - 3
