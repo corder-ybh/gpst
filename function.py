@@ -105,7 +105,7 @@ def getTickInfo(code):
     sql = "SELECT * FROM finance.stock_basics tk WHERE tk.`code` = '" + code + "'"
     resDf = pd.read_sql(sql, con=engine)
     resSe = resDf.iloc[0]
-    resStr = "code:"+str(resSe['code'])+" name:"+str(resSe['name'])+" industry:"+str(resSe['industry'])+"上市日期"+str(resSe['timeToMarket'])\
+    resStr = "code:"+str(resSe['code'])+" name:"+str(resSe['name'])+" industry:"+str(resSe['industry'])+" 上市日期"+str(resSe['timeToMarket'])\
              +" 地区:" +str(resSe['area'])+" 市盈率:"+str(resSe['pe']) + " 流通股本(亿):"+str(resSe['outstanding'])+" 总股本(亿):"+str(resSe['totals']) \
              +" 总资产(万):"+str(resSe['totalAssets'])+" 流动资产:"+str(resSe['liquidAssets'])+" 固定资产:"+str(resSe['fixedAssets']) +" 公积金:"+str(resSe['reserved'])\
              +" 每股公积金:"+str(resSe['reservedPerShare'])+" 每股收益:"+str(resSe['esp'])+" 每股净资:"+str(resSe['bvps']) +" 市净率:"+str(resSe['pb'])\
