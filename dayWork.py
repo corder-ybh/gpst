@@ -109,25 +109,63 @@ def analyStock(code):
     if (isLow55 > 4 and isUp > 3):
         result55.append(code)
         print ("55:" + code)
+'''
+20日短期均线分析
+'''
+def analyStockShort(code):
+    global result
+
+    # 获取数据
+    tDate = time.strftime("%Y-%m-%d", time.localtime())
+    nDate = getNdatAgo(tDate, 70)
+    sql = "SELECT * FROM finance.tick_data WHERE code = '" + code + "' AND `date` > '" + nDate + "'"
+    caDf = pd.read_sql(sql, con=engine)
+
+    if (caDf is None or caDf.empty):
+        return
+
+    # 计算均线
+    days = [5, 10, 20, 30]
+    for ma in days:
+        column_name = "MA{}".format(ma)
+        caDf[column_name] = caDf[['close']].rolling(window=ma).mean()
+
+    # 计算20日均线浮动比例
+    caDf["20pchange"] = caDf.MA20.pct_change()
+
+    endDf = caDf.tail(2)
+    endDf.reset_index(drop=True, inplace=True)
+
+    # 首末项
+    head = endDf.iloc[0]
+    tail = endDf.iloc[-1]
+
+    # 2天之内有均线金叉出现，5日均线上穿20日均线
+    head5 = head['MA5']
+    head20 = head['MA20']
+    tail5 = tail['MA5']
+    tail20 = tail['MA20']
+    if (head['MA5'] < head['MA20'] and tail['MA5'] > tail['MA20']):
+        # 进行发送处理
+        resultJc.append(code)
+        print("jc:" + code)
 
 
-# 将数据保存为图片并发邮件
 
 
-
-# for i in df.index: #df.index
-#     temp = df.loc[i]
-#     code = temp['code']
-#     #每日添加和分析，两个函数开启一个即可
-#     analyStock(code)
-#     print(df.loc[i]['index'])
+for i in df.index: #df.index
+    temp = df.loc[i]
+    code = temp['code']
+    #每日添加和分析，两个函数开启一个即可
+    analyStockShort(code)
+    print(df.loc[i]['index'])
 # # #result = ['002770', '002164']
 strTo = [email]
 strFrom = 'root@us-west-2.compute.internal'
 eh = EmailHandler()
 tDate = time.strftime("%Y-%m-%d", time.localtime())
 
-resultJc = ['002770','002164']
+# resultJc = ['002770','002164']
 
 tempJc = list()
 cs = math.ceil(float(len(resultJc)) / 10)

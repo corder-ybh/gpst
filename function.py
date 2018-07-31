@@ -100,6 +100,68 @@ def draw(code) :
     plt.savefig('./img/'+code + '-latest.png')
     plt.close('all')
 
+def drawShort(code):
+    # 获取数据
+    # df = ts.get_k_data(code, start="2017-09-01")
+    tDate = time.strftime("%Y-%m-%d", time.localtime())
+    nDate = getNdatAgo(tDate, 365)
+    sql = "SELECT * FROM finance.tick_data WHERE code = '" + code + "' AND `date` > '" + nDate + "'"
+    df = pd.read_sql(sql, con=engine)
+
+    # 计算浮动比例
+    df["pchange"] = df.close.pct_change()
+    # 计算浮动点数
+    df["change"] = df.close.diff()
+
+    # 计算均线
+    days = [5, 10, 20, 30]
+    for ma in days:
+        column_name = "MA{}".format(ma)
+        df[column_name] = df[['close']].rolling(window=ma).mean()
+
+    # 计算策略三所需参数
+    df['5-20'] = df['MA5'] - df['MA20']
+    df["pc5-20"] = df['5-20'].pct_change()
+    df['jxd5'] = df[['5-20']].rolling(window=5).mean()
+    df['jxd10'] = df[['5-20']].rolling(window=10).mean()
+
+    # 基数确定
+    baseNum = df['MA20'].median()
+    xsMedian = df['volume'].median()
+    xsBase = getLength(xsMedian)
+
+    # 计算处理
+    df['xsVolume'] = df['volume'] / xsBase * 2 + baseNum + 1
+    df['xs5-20'] = 2 * df['5-20'] + baseNum - 1
+    df['xsjxd5'] = 2 * df['jxd5'] + baseNum - 1
+    df['xsjxd10'] = 2 * df['jxd10'] + baseNum - 1
+
+    df.index = pd.to_datetime(df.date)
+
+    df[['close', 'MA5', 'MA10', 'MA20', 'xs5-20', 'xsjxd5', 'xsjxd10', 'xsVolume']].plot()
+
+    plt.grid(True, axis='y')
+    plt.title(code)
+    plt.savefig('./img/' + code + '.png')
+
+    df = df.tail(30)
+    # 基数确定
+    baseNum = df['MA20'].median()
+    xsMedian = df['volume'].median()
+    xsBase = getLength(xsMedian)
+
+    # 计算处理
+    df['xsVolume'] = df['volume'] / xsBase * 2 + baseNum + 1
+    df['xs5-20'] = 2 * df['5-20'] + baseNum - 1
+    df['xsjxd5'] = 2 * df['jxd5'] + baseNum - 1
+    df['xsjxd10'] = 2 * df['jxd10'] + baseNum - 1
+
+    df[['close', 'MA5', 'MA10', 'MA20', 'xs5-20', 'xsjxd5', 'xsjxd10', 'xsVolume']].plot()
+    plt.grid(True, axis='y')
+    plt.title(code + "-latest")
+    plt.savefig('./img/' + code + '-latest.png')
+    plt.close('all')
+
 #获取股票的基本数据
 def getTickInfo(code):
     sql = "SELECT * FROM finance.stock_basics tk WHERE tk.`code` = '" + code + "'"

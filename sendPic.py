@@ -105,7 +105,8 @@ class EmailHandler(object):
         i = random.uniform(0, 1000)
         j = random.uniform(1000,2000)
         for code in codeList:
-            draw(code)
+            #draw(code)
+            drawShort(code)
             content = getTickInfo(code)
             msgHtmlImg = content + ":</br>"
             msgHtmlImg += '<img src="cid:image{count}"><br>'.format(count=i)

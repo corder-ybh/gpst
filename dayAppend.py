@@ -31,7 +31,7 @@ df = pd.read_sql(sql="SELECT `index`,`code`,`name`,`industry` FROM finance.stock
 
 def daywork(data):
     global dbName
-    code = '603997'#data['code']
+    code = data['code']
 
     # 获取数据将当日数据添加进
     tDate = time.strftime("%Y-%m-%d", time.localtime())
