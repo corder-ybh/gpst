@@ -28,3 +28,10 @@
    - source下的值，复制到console下可以直接显示
    - source下js中可以点击左边打断点，左下角可以格式化
    - 查看js操作的动作，然后在python中模拟的操作（但是这种比较麻烦）
+
+####tips:
+  1. 尽量使用返回json的url，可以使用chrome切换手机页面和使用手机
+  app抓包软件
+  2. 在response中搜索中文可能搜不到，因为可能被转义，但是在priview中就没有此问题
+  3. network中，可以使用ctrl来多选不同的类型xhr指ajax，如果过滤效果不好，也可以使用右上角search on file
+     
