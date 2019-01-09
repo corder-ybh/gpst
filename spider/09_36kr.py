@@ -17,5 +17,5 @@ ret = re.findall("<script>var props=(.*?),locationnal=", htmlStr)[0]
 with open("./res/36kr.json", "w", encoding='utf-8') as f:
     f.write(ret)
 
-# ret = json.loads(ret)
-# print(ret)
+ret = json.loads(ret)
+print(ret)

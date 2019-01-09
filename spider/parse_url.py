@@ -1,8 +1,6 @@
 import requests
 #from retrying import retry
 
-
-
 def _pare_url(url, method, data, proxies, headers):
     print("*" * 20)
     if method == "POST":
