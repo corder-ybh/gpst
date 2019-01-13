@@ -41,4 +41,11 @@
       - eval:能实现简单的字符串和python类型的转化
       - replace:把单引号转换为双引号
   - json.loads()/json.dumps()实现json和python数据间的转换
-  - json.load()/json.dump()实现包含json类文件对象(包含read()或者write()方法的)和python数据间的数据     
+  - json.load()/json.dump()实现包含json类文件对象(包含read()或者write()方法的)和python数据间的数据
+  
+ ### xpath使用
+   - 网页源码往往和爬虫获取的响应不一致，所以有较大使用限制
+   - 代码中的使用：
+      - from lxml import etree 
+      - htm = etree.HTML(text)
+      - lxml可以自动修正HTML代码     
