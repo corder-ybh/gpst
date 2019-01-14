@@ -45,10 +45,12 @@ testStr = '''<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http
 # url = unquote(url, 'utf-8')[39:]
 # print(url)
 
-line = r"8IqW0jdnxx1xbK/tb/edi?tor/@!images/client/image_emoticon25.png"
-print(line)
-# url = line.replace('/', '')
-# url = line.translate(None, "@?/|\! ")
-url = re.sub('[!@#$/]', '', line)
-print(url)
+# line = r"8IqW0jdnxx1xbK/tb/edi?tor/@!images/client/image_emoticon25.png"
+# print(line)
+# # url = line.replace('/', '')
+# # url = line.translate(None, "@?/|\! ")
+# url = re.sub('[!@#$/]', '', line)
+# print(url)
 
+urlTemp = "https://www.qiushibaike.com/hot/page/{}/"
+print(urlTemp.format(2))

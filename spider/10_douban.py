@@ -56,6 +56,7 @@ class DoubanSpider:
             num = 0
             total = 100 #假设有第一页
             while num < total+18:
+                print('label:'+item['country']+' total:'+str(total)+' num:'+str(num))
                 url = item['urlTemp'].format(num)
                 jsonStr = self.parseUrl(url)
                 contentList,total = self.getContentList(jsonStr)
