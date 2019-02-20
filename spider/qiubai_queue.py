@@ -21,7 +21,7 @@ class QiuBai:
         urlTemp = "https://www.qiushibaike.com/hot/page/{}/"
         for i in range(1, 36):
             self.urlQueue.put(urlTemp.format(i))
-        print("getTotalUrl is over")
+        print("getTotalUrl is over", self.urlQueue.qsize())
 
     '''
     发送请求，获取响应，同事etree处理html
@@ -33,20 +33,19 @@ class QiuBai:
             response = requests.get(url, headers=self.headers, timeout=10)
             #获取html字符串
             html = response.content.decode()
-            # print(html)
-            # exit()
             #获取element类型的html
             html = etree.HTML(html)
             self.htmlQueue.put(html)
             #放在此处，保证url已经获得反馈以后再将url设置为任务已完成
+            print("pu HQ: ", self.htmlQueue.qsize())
+            print("pu UQ: ", self.urlQueue.qsize())
             self.urlQueue.task_done()
-        print("parseUrl is over")
 
     '''
     返回一个list，包含一个url对应页面的所有段子的所有内容的列表
     '''
     def getContent(self):
-        print("getContent start!")
+        print("getContent start!", self.htmlQueue.qsize())
         while self.htmlQueue.not_empty:
             html = self.htmlQueue.get()
             totalDiv = html.xpath("//*[starts-with(@id, 'qiushi_tag_')]")
@@ -73,33 +72,34 @@ class QiuBai:
                 hot_comment = i.xpath('./a[@class="indexGodCmt"]/div/div/text()')
                 hot_comment = hot_comment[0].replace("\n：", "").replace("\n", "") if len(hot_comment) > 0 else None
                 hot_comment_like_num = i.xpath('./a[@class="indexGodCmt"]/div/div/div/text()')
-                hot_comment_like_num = hot_comment_like_num[-1].replace("\n", "") if len(
-                hot_comment_like_num) > 0 else None
-            item = dict(
-                author_name=author_name,
-                author_img=author_img,
-                author_href=author_href,
-                author_gender=author_gender,
-                author_age=author_age,
-                content=content,
-                content_vote=content_vote,
-                content_comment_numbers=content_comment_numbers,
-                hot_comment=hot_comment,
-                hot_comment_author=hot_comment_author,
-                hot_comment_like_num=hot_comment_like_num
-            )
-            items.append(item)
-            self.contentQueue.put(item)
+                hot_comment_like_num = hot_comment_like_num[-1].replace("\n", "") if len(hot_comment_like_num) > 0 else None
+                item = dict(
+                    author_name=author_name,
+                    author_img=author_img,
+                    author_href=author_href,
+                    author_gender=author_gender,
+                    author_age=author_age,
+                    content=content,
+                    content_vote=content_vote,
+                    content_comment_numbers=content_comment_numbers,
+                    hot_comment=hot_comment,
+                    hot_comment_author=hot_comment_author,
+                    hot_comment_like_num=hot_comment_like_num
+                )
+                items.append(item)
+            self.contentQueue.put(items)
+            print("gt contentQ: ", self.contentQueue.qsize())
+            print("gt htmlQ: ", self.htmlQueue.qsize())
             self.htmlQueue.task_done()
 
     '''
     保持items
     '''
     def saveItems(self):
-        print("saveItems start")
+        print("saveItems start cq: ", self.contentQueue.qsize())
         while self.contentQueue.not_empty:
             items = self.contentQueue.get()
-            f = open('./res/qb.txt', "a")
+            f = open('./res/qb.txt', "a", encoding='utf-8')
             for i in items:
                 json.dump(i, f, ensure_ascii=False, indent=2)
             f.close()
@@ -112,18 +112,18 @@ class QiuBai:
     def run(self):
         threadList = []
 
-        threadUrl = threading.Thread(target=self.getTotalUrl())
+        threadUrl = threading.Thread(target=self.getTotalUrl)
         threadList.append(threadUrl)
         #发送网络请求
         for i in range(10):
-            threadParse = threading.Thread(target=self.parseUrl())
+            threadParse = threading.Thread(target=self.parseUrl)
             threadList.append(threadParse)
 
         #提取数据
-        threadGetContent = threading.Thread(target=self.getContent())
+        threadGetContent = threading.Thread(target=self.getContent)
         threadList.append(threadGetContent)
         #保存
-        threadSave = threading.Thread(target=self.saveItems())
+        threadSave = threading.Thread(target=self.saveItems)
         threadList.append(threadSave)
         for t in threadList:
             t.setDaemon(True)  #为每个进程设置为后台进程，效果是如果主进程退出子进程也会退出
